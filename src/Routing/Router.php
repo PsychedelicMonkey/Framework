@@ -7,15 +7,23 @@ use FastRoute\RouteCollector;
 use PsychedelicMonkey\Framework\Http\HttpException;
 use PsychedelicMonkey\Framework\Http\HttpRequestMethodException;
 use PsychedelicMonkey\Framework\Http\Request;
-use function FastRoute\simpleDispatcher;
 
-class Router implements RouterInterface
+abstract class Router
 {
+    protected Dispatcher $dispatcher;
+
+    public function __construct()
+    {
+        $this->createDispatcher();
+    }
+
+    protected abstract function createDispatcher(): void;
+
     /**
      * @throws HttpException
      * @throws HttpRequestMethodException
      */
-    public function dispatch(Request $request): array
+    public function handleDispatch(Request $request): array
     {
         $routeInfo = $this->extractRouteInfo($request);
 
@@ -35,15 +43,7 @@ class Router implements RouterInterface
      */
     private function extractRouteInfo(Request $request): array
     {
-        $dispatcher = simpleDispatcher(function (RouteCollector $r) {
-            $routes = include_once BASE_DIR . '/routes/web.php';
-
-            foreach ($routes as $route) {
-                $r->addRoute(...$route);
-            }
-        });
-
-        $routeInfo = $dispatcher->dispatch(
+        $routeInfo = $this->dispatcher->dispatch(
             $request->getMethod(),
             $request->getPath()
         );
@@ -60,6 +60,15 @@ class Router implements RouterInterface
                 $e = new HttpException('Not found');
                 $e->setStatusCode(404);
                 throw $e;
+        }
+    }
+
+    protected function addRoutes(RouteCollector $r): void
+    {
+        $routes = include_once BASE_DIR . '/routes/web.php';
+
+        foreach ($routes as $route) {
+            $r->addRoute(...$route);
         }
     }
 }
