@@ -2,28 +2,27 @@
 
 namespace PsychedelicMonkey\Framework\Http;
 
-use FastRoute\RouteCollector;
-use function FastRoute\simpleDispatcher;
+use Exception;
+use PsychedelicMonkey\Framework\Routing\RouterInterface;
 
-class Kernel
+readonly class Kernel
 {
+    public function __construct(
+        private RouterInterface $router
+    ) {
+        //
+    }
+
     public function handle(Request $request): Response
     {
-        $dispatcher = simpleDispatcher(function (RouteCollector $r) {
-            $routes = include_once BASE_DIR . '/routes/web.php';
+        try {
+            [$routeHandler, $vars] = $this->router->dispatch($request);
 
-            foreach ($routes as $route) {
-                $r->addRoute(...$route);
-            }
-        });
+            return call_user_func_array($routeHandler, $vars);
+        } catch (Exception $e) {
+            $response = new Response($e->getMessage(), 400);
+        }
 
-        $routeInfo = $dispatcher->dispatch(
-            $request->getMethod(),
-            $request->getPath()
-        );
-
-        [$status, [$controller, $method], $vars] = $routeInfo;
-
-        return call_user_func_array([new $controller, $method], $vars);
+        return $response;
     }
 }
