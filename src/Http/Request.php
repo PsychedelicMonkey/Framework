@@ -18,4 +18,16 @@ readonly class Request
     {
         return new static($_GET, $_POST, $_FILES, $_COOKIE, $_SERVER);
     }
+
+    public function getMethod(): string
+    {
+        return $this->server['REQUEST_METHOD'];
+    }
+
+    public function getPath(): string
+    {
+        $uri = strtok($this->server['REQUEST_URI'], '?');
+
+        return rawurldecode($uri);
+    }
 }
